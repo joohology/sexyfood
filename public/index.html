@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>증시 계기판</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #F5F4F1; --surface: #FFFFFF; --surface-2: #EDEBE6;
+    --line: #DCD8D0; --line-soft: #E7E4DE;
+    --ink: #1A1A18; --ink-2: #5C5A54; --ink-3: #8A8780;
+    --accent: #A8761F; --up: #C8342F; --down: #2757B0; --flat: #8A8780;
+    --buy: #2C7A54; --hold: #4A6B86; --cash: #C77B18; --exit: #B32721;
+    --on-fill: #FFFFFF; --shadow: 0 1px 2px rgba(26,26,24,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0F1113; --surface:#171A1D; --surface-2:#1E2226; --line:#2B3036; --line-soft:#23282D;
+      --ink:#EDEAE4; --ink-2:#A6A29A; --ink-3:#74716B; --accent:#D9A441;
+      --up:#F0564F; --down:#5B8FE8; --flat:#74716B;
+      --buy:#4FBE86; --hold:#7FA8CC; --cash:#E8A93A; --exit:#F0564F;
+      --on-fill:#0F1113; --shadow:none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0F1113; --surface:#171A1D; --surface-2:#1E2226; --line:#2B3036; --line-soft:#23282D;
+    --ink:#EDEAE4; --ink-2:#A6A29A; --ink-3:#74716B; --accent:#D9A441;
+    --up:#F0564F; --down:#5B8FE8; --flat:#74716B;
+    --buy:#4FBE86; --hold:#7FA8CC; --cash:#E8A93A; --exit:#F0564F;
+    --on-fill:#0F1113; --shadow:none;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0; color: var(--ink);
+    font-family: "IBM Plex Sans KR", system-ui, -apple-system, sans-serif;
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 28px 20px 56px; }
+  .eyebrow { font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  header { display:flex; flex-direction:column; gap:6px; padding-bottom:20px; }
+  h1 { margin:0; font-size:27px; font-weight:700; letter-spacing:-.01em; text-wrap:balance; }
+  .sub { margin:0; color:var(--ink-2); font-size:13px; max-width:62ch; }
+
+  .scores { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .score { background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:18px 20px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px; }
+  .score-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .score-head .who { font-size:15px; font-weight:700; }
+  .score-head .when { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-3); letter-spacing:.03em; text-align:right; }
+  .score-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .score-val { font-family:"IBM Plex Mono",monospace; font-size:52px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.03em; }
+  .score-val small { font-size:18px; color:var(--ink-3); font-weight:400; }
+  .verdict-pill { font-size:24px; font-weight:700; letter-spacing:-.01em; padding:7px 20px; border-radius:4px; white-space:nowrap; background:var(--surface-2); color:var(--ink-3); }
+  .verdict-pill.on-buy { background:var(--buy); color:var(--on-fill); }
+  .verdict-pill.on-hold { background:var(--hold); color:var(--on-fill); }
+  .verdict-pill.on-cash { background:var(--cash); color:var(--on-fill); }
+  .verdict-pill.on-exit { background:var(--exit); color:var(--on-fill); }
+  .ladder { display:flex; gap:3px; }
+  .lz { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:7px 2px; border-radius:3px; background:var(--surface-2); color:var(--ink-3); font-size:12px; font-weight:600; text-align:center; line-height:1.2; }
+  .lz small { font-family:"IBM Plex Mono",monospace; font-size:9.5px; font-weight:400; opacity:.85; }
+  .lz.active { color:var(--on-fill); font-weight:700; }
+  .lz.active.z-exit { background:var(--exit); }
+  .lz.active.z-cash { background:var(--cash); }
+  .lz.active.z-hold { background:var(--hold); }
+  .lz.active.z-buy { background:var(--buy); }
+  .score-why { margin:0; font-size:13px; color:var(--ink-2); }
+
+  section { margin-top:36px; }
+  .sec-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:18px; }
+  .sec-head h2 { margin:0; font-size:16px; font-weight:600; }
+  .sec-meta { font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3); letter-spacing:.04em; text-align:right; }
+  .live-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--buy); margin-right:5px; vertical-align:middle; }
+  .live-dot.idle { background:var(--ink-3); }
+  .live-dot.bad { background:var(--cash); }
+
+  .gauges { display:flex; flex-direction:column; gap:2px; }
+  .gauge { display:grid; grid-template-columns:172px minmax(0,1fr) 120px; align-items:center; gap:18px; padding:14px 4px; border-bottom:1px solid var(--line-soft); }
+  .gauge:last-child { border-bottom:none; }
+  .g-name { display:flex; flex-direction:column; gap:2px; }
+  .g-name b { font-size:13.5px; font-weight:600; }
+  .g-name small { font-size:10.5px; color:var(--ink-3); font-family:"IBM Plex Mono",monospace; letter-spacing:.02em; }
+  .g-val-wrap { text-align:right; }
+  .g-value { font-family:"IBM Plex Mono",monospace; font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .g-contrib { font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.04em; display:block; margin-top:2px; color:var(--ink-3); }
+  .scale { position:relative; height:26px; }
+  .scale-mark { position:absolute; top:4px; width:2px; height:17px; background:var(--ink); transform:translateX(-1px); }
+  .scale-ends { position:absolute; top:17px; left:0; right:0; display:flex; justify-content:space-between; font-family:"IBM Plex Mono",monospace; font-size:9.5px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .grad { position:absolute; top:8px; left:0; right:0; height:9px; border-radius:2px; }
+  .grad.buy-right { background:linear-gradient(90deg, color-mix(in srgb, var(--exit) 26%, transparent), color-mix(in srgb, var(--buy) 34%, transparent)); }
+  .grad.buy-left { background:linear-gradient(90deg, color-mix(in srgb, var(--buy) 34%, transparent), color-mix(in srgb, var(--exit) 26%, transparent)); }
+
+  .idx { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:18px; }
+  .idx-card { background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px 18px 14px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:7px; }
+  .idx-top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .idx-top b { font-size:13.5px; font-weight:600; }
+  .chip { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.06em; padding:2px 7px; border:1px solid var(--line); border-radius:2px; color:var(--ink-3); white-space:nowrap; }
+  .pct-row { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .pct { font-family:"IBM Plex Mono",monospace; font-size:38px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.03em; color:var(--flat); }
+  .pct.up { color:var(--up); }
+  .pct.down { color:var(--down); }
+  .pct-basis { font-size:11.5px; color:var(--ink-3); line-height:1.35; }
+  .pct-basis b { display:block; color:var(--ink-2); font-weight:600; font-size:12px; }
+  .lvl { font-family:"IBM Plex Mono",monospace; font-size:13px; font-variant-numeric:tabular-nums; color:var(--ink-2); }
+  .lvl span { color:var(--ink-3); }
+  .mini { display:flex; flex-direction:column; gap:4px; margin-top:2px; }
+  .breadth-bar { display:flex; height:4px; border-radius:2px; overflow:hidden; background:var(--surface-2); }
+  .breadth-bar i { display:block; height:100%; }
+  .b-up { background:var(--up); } .b-flat { background:var(--flat); } .b-down { background:var(--down); }
+  .mini-label { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-3); font-variant-numeric:tabular-nums; letter-spacing:.03em; }
+  .stamp { font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-3); letter-spacing:.03em; }
+  .stamp.warnish { color:var(--cash); }
+
+  .note { margin-top:34px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-3); font-size:12px; line-height:1.7; }
+  .note p { margin:0 0 6px; } .note p:last-child { margin-bottom:0; }
+  .note b { color:var(--ink-2); font-weight:600; }
+
+  @media (max-width:720px) {
+    .scores { grid-template-columns:1fr; }
+    .idx { grid-template-columns:1fr; }
+    .gauge { grid-template-columns:1fr 108px; grid-template-areas:"name value" "scale scale"; gap:8px 12px; }
+    .g-name { grid-area:name; } .g-val-wrap { grid-area:value; } .scale { grid-area:scale; }
+    h1 { font-size:23px; } .score-val { font-size:44px; } .verdict-pill { font-size:21px; }
+    .pct { font-size:33px; } .lz { font-size:11px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Market Instrument Board</div>
+    <h1>증시 계기판</h1>
+    <p class="sub">불안하고 과매도일수록 매수, 과열되고 과매수일수록 탈출 — 그 판단만을 위한 보드. 점수가 높을수록 매수 타이밍입니다.</p>
+  </header>
+
+  <div class="scores">
+    <div class="score">
+      <div class="score-head"><span class="who">미국 주식</span><span class="when" id="us-when">불러오는 중</span></div>
+      <div class="score-row">
+        <div class="score-val" id="us-score">—<small>/100</small></div>
+        <div class="verdict-pill" id="us-verdict">—</div>
+      </div>
+      <div class="ladder" id="us-ladder"></div>
+      <p class="score-why" id="us-why">불러오는 중입니다.</p>
+    </div>
+    <div class="score">
+      <div class="score-head"><span class="who">국내 주식</span><span class="when" id="kr-when">코스피 기준</span></div>
+      <div class="score-row">
+        <div class="score-val" id="kr-score">—<small>/100</small></div>
+        <div class="verdict-pill" id="kr-verdict">—</div>
+      </div>
+      <div class="ladder" id="kr-ladder"></div>
+      <p class="score-why" id="kr-why">코스피를 불러오는 중입니다.</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><h2>미국 지표</h2><div class="sec-meta" id="us-meta">—</div></div>
+    <div class="gauges" id="us-gauges"></div>
+    <div class="idx" id="us-idx"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>국내 지수</h2><div class="sec-meta" id="kr-meta"><span class="live-dot idle"></span>수신 대기</div></div>
+    <div class="idx">
+      <div class="idx-card" id="q-KOSPI">
+        <div class="idx-top"><b>코스피</b><span class="chip">스코어 반영</span></div>
+        <div class="pct-row"><div class="pct" data-pct>—</div><div class="pct-basis"><b>전날 대비</b><span data-basis>기준일 확인 중</span></div></div>
+        <div class="lvl" data-lvl>불러오는 중</div>
+        <div class="mini"><div class="breadth-bar"><i class="b-up" data-b-up style="width:0%"></i><i class="b-flat" data-b-flat style="width:100%"></i><i class="b-down" data-b-down style="width:0%"></i></div>
+        <div class="mini-label" data-breadth>상승 · 보합 · 하락</div></div>
+        <div class="stamp" data-stamp></div>
+      </div>
+      <div class="idx-card" id="q-KOSDAQ">
+        <div class="idx-top"><b>코스닥</b><span class="chip">참고 · 스코어 미반영</span></div>
+        <div class="pct-row"><div class="pct" data-pct>—</div><div class="pct-basis"><b>전날 대비</b><span data-basis>기준일 확인 중</span></div></div>
+        <div class="lvl" data-lvl>불러오는 중</div>
+        <div class="mini"><div class="breadth-bar"><i class="b-up" data-b-up style="width:0%"></i><i class="b-flat" data-b-flat style="width:100%"></i><i class="b-down" data-b-down style="width:0%"></i></div>
+        <div class="mini-label" data-breadth>상승 · 보합 · 하락</div></div>
+        <div class="stamp" data-stamp></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="note">
+    <p><b>미국 스코어 산식</b> — 공포탐욕지수 40%(낮을수록 가점), VIX 30%(높을수록 가점), 10년물 금리 15%(높을수록 가점), WTI 15%(높을수록 가점).</p>
+    <p><b>국내 스코어 산식</b> — 코스피만 반영. 하락 종목 비중이 높을수록 가점.</p>
+    <p>QQQ·S&amp;P500은 무료 시세 API 한도 때문에 S&amp;P500 자리에 그 지수를 추종하는 ETF(SPY) 가격을 대신 표시합니다 — 등락률은 지수와 사실상 같이 움직입니다. VIX·10년물·WTI는 정기적으로 수동 갱신되는 값입니다.</p>
+    <p>국내 지수는 장중이면 현재가, 개장 전·마감 후면 직전 조회값을 표시합니다. 상승 빨강, 하락 파랑 — 국내 표기 기준. 참고용이며 투자 권유가 아닙니다.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var ZONES = [
+    { key:"exit", label:"강력매도", range:"0-20", width:20, cls:"z-exit", pill:"on-exit" },
+    { key:"cash", label:"현금화", range:"20-40", width:20, cls:"z-cash", pill:"on-cash" },
+    { key:"hold", label:"홀딩", range:"40-65", width:25, cls:"z-hold", pill:"on-hold" },
+    { key:"buy", label:"매수", range:"65-100", width:35, cls:"z-buy", pill:"on-buy" }
+  ];
+  function clamp(n){ return Math.max(0, Math.min(100, n)); }
+  function fmt(n,d){ if (typeof n !== "number" || !isFinite(n)) return "—"; return n.toLocaleString("ko-KR",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function pctText(p){ return (p>0?"+":p<0?"-":"") + Math.abs(p).toFixed(2) + "%"; }
+  function pctClass(p){ return p>0?"up":p<0?"down":""; }
+  function zoneOf(s){ return s>=65?ZONES[3]:s>=40?ZONES[2]:s>=20?ZONES[1]:ZONES[0]; }
+  function signal(s){ return s>=65?"매수 신호":s>=40?"중립":s>=20?"탈출 쪽":"탈출 신호"; }
+  function buildLadder(id){
+    document.getElementById(id).innerHTML = ZONES.map(function(z){
+      return '<div class="lz '+z.cls+'" data-zone="'+z.key+'" style="width:'+z.width+'%"><span>'+z.label+'</span><small>'+z.range+'</small></div>';
+    }).join("");
+  }
+  buildLadder("us-ladder"); buildLadder("kr-ladder");
+
+  function paintScore(prefix, score, why){
+    var z = zoneOf(score);
+    document.getElementById(prefix+"-score").innerHTML = score.toFixed(0) + "<small>/100</small>";
+    var pill = document.getElementById(prefix+"-verdict");
+    pill.className = "verdict-pill " + z.pill; pill.textContent = z.label;
+    var lad = document.getElementById(prefix+"-ladder");
+    ZONES.forEach(function(zz){
+      var el = lad.querySelector('[data-zone="'+zz.key+'"]');
+      if (el) el.className = "lz " + zz.cls + (zz.key === z.key ? " active" : "");
+    });
+    document.getElementById(prefix+"-why").textContent = why;
+  }
+
+  var usTimer = null, krTimer = null;
+
+  async function loadUS(){
+    try {
+      var r = await fetch("/api/us"); var d = await r.json();
+      if (!d.ok) throw new Error(d.error || "불러오기 실패");
+
+      var fng = (d.fearGreed && typeof d.fearGreed.score === "number") ? d.fearGreed.score : null;
+      var fngLabel = (d.fearGreed && d.fearGreed.rating) || "-";
+      var vix = d.vix, y10 = d.y10, wti = d.wti;
+
+      document.getElementById("us-meta").textContent = d.staticAsOf + " · QQQ/SPY 실시간";
+      document.getElementById("us-when").textContent = fng !== null ? "공포탐욕 실시간" : "일부 항목 확인 필요";
+
+      var sFng = fng !== null ? clamp(100 - fng) : null;
+      var sVix = clamp((vix - 12) / 28 * 100);
+      var sY10 = clamp((y10 - 3.5) / 2.5 * 100);
+      var sWti = clamp((wti - 50) / 70 * 100);
+      var parts = [ [sFng,0.40], [sVix,0.30], [sY10,0.15], [sWti,0.15] ].filter(function(p){ return p[0] !== null; });
+      var wsum = parts.reduce(function(a,p){ return a+p[1]; }, 0);
+      var usScore = wsum > 0 ? parts.reduce(function(a,p){ return a+p[0]*p[1]; }, 0) / wsum : 50;
+
+      var gauges = [
+        { name:"공포탐욕지수", hint:"낮을수록 매수 · 가중 40%", value: fng!==null ? fng.toFixed(1)+" ("+fngLabel+")" : "확인 필요",
+          score: sFng ?? 0, pos: fng!==null ? clamp(fng) : 50, ends:["극단공포 0","100 극단탐욕"], dir:"buy-left" },
+        { name:"VIX 변동성지수", hint:"높을수록 매수 · 가중 30%", value: vix.toFixed(2),
+          score: sVix, pos: clamp((vix-10)/30*100), ends:["10","40"], dir:"buy-right" },
+        { name:"美 10년물 금리", hint:"높을수록 매수 · 가중 15%", value: y10.toFixed(2)+"%",
+          score: sY10, pos: clamp((y10-3)/3*100), ends:["3.0%","6.0%"], dir:"buy-right" },
+        { name:"국제유가 WTI", hint:"높을수록 매수 · 가중 15%", value: "$"+wti.toFixed(2),
+          score: sWti, pos: clamp((wti-50)/70*100), ends:["$50","$120"], dir:"buy-right" }
+      ];
+      document.getElementById("us-gauges").innerHTML = gauges.map(function(g){
+        return '<div class="gauge"><div class="g-name"><b>'+g.name+'</b><small>'+g.hint+'</small></div>'+
+          '<div class="scale"><div class="grad '+g.dir+'"></div><div class="scale-mark" style="left:'+g.pos.toFixed(1)+'%"></div>'+
+          '<div class="scale-ends"><span>'+g.ends[0]+'</span><span>'+g.ends[1]+'</span></div></div>'+
+          '<div class="g-val-wrap"><div class="g-value">'+g.value+'</div><span class="g-contrib">'+g.score.toFixed(0)+'점 · '+signal(g.score)+'</span></div></div>';
+      }).join("");
+
+      function idxCard(name, chip, q, unit){
+        if (!q || q.error || typeof q.price !== "number") {
+          return '<div class="idx-card"><div class="idx-top"><b>'+name+'</b><span class="chip">'+chip+'</span></div>'+
+            '<div class="pct">—</div><div class="lvl">'+(q && q.error ? q.error : "확인 필요")+'</div></div>';
+        }
+        var pct = q.changePct;
+        return '<div class="idx-card"><div class="idx-top"><b>'+name+'</b><span class="chip">'+chip+'</span></div>'+
+          '<div class="pct-row"><div class="pct '+pctClass(pct)+'">'+pctText(pct)+'</div>'+
+          '<div class="pct-basis"><b>전날 대비</b><span>'+(q.marketOpen ? "장중 실시간" : "직전 종가")+'</span></div></div>'+
+          '<div class="lvl">'+unit+fmt(q.price,2)+'</div></div>';
+      }
+      document.getElementById("us-idx").innerHTML =
+        idxCard("나스닥100 · QQQ", "실시간", d.qqq, "$") +
+        idxCard("S&amp;P500 추종 ETF · SPY", "실시간 · 지수 근사치", d.spy, "$");
+
+      var why = (fng!==null ? "공포탐욕 "+fng.toFixed(0)+"("+fngLabel+"), " : "") +
+        "VIX "+vix.toFixed(1)+", 10년물 "+y10.toFixed(2)+"%, WTI $"+wti.toFixed(0)+". " +
+        (usScore>=65 ? "과매도 구간 — 분할 매수 구간입니다."
+        : usScore>=40 ? "중립 — 신규 진입보다 기존 포지션 유지."
+        : usScore>=20 ? "심리 과열 쪽 — 비중을 줄여 현금을 확보할 국면."
+        : "과매수 극단 — 탈출 우선.");
+      paintScore("us", usScore, why);
+    } catch (err) {
+      document.getElementById("us-why").textContent = "미국 지표를 불러오지 못했습니다: " + err.message;
+      document.getElementById("us-meta").textContent = "확인 필요";
+    }
+  }
+
+  function setKrMeta(cls, text){
+    var el = document.getElementById("kr-meta");
+    el.innerHTML = "";
+    var dot = document.createElement("span"); dot.className = "live-dot " + cls;
+    el.appendChild(dot); el.appendChild(document.createTextNode(text));
+  }
+
+  var krState = {};
+  function retractKr(key, text){
+    var card = document.getElementById("q-"+key);
+    card.querySelector("[data-pct]").className = "pct";
+    card.querySelector("[data-pct]").textContent = "—";
+    card.querySelector("[data-basis]").textContent = "기준일 확인 불가";
+    card.querySelector("[data-lvl]").textContent = text;
+    card.querySelector("[data-stamp]").textContent = "";
+  }
+
+  async function loadKrOne(key, label, scored){
+    try {
+      var r = await fetch("/api/kr?index=" + key);
+      var d = await r.json();
+      if (!d.ok || typeof d.price !== "number") throw new Error(d.error || "응답 형식 확인 필요");
+
+      var card = document.getElementById("q-"+key);
+      var sign = String(d.changeSign || "");
+      var rate = Number(d.changeRate) || 0;
+      var up = sign === "1" || sign === "2" || (!sign && rate > 0);
+      var down = sign === "4" || sign === "5" || (!sign && rate < 0);
+      var signed = down ? -Math.abs(rate) : up ? Math.abs(rate) : 0;
+
+      var pctEl = card.querySelector("[data-pct]");
+      pctEl.className = "pct " + pctClass(signed);
+      pctEl.textContent = pctText(signed);
+      card.querySelector("[data-basis]").textContent = d.marketOpen ? "장중 실시간" : "직전 조회값";
+
+      var mark = up ? "▲" : down ? "▼" : "―";
+      card.querySelector("[data-lvl]").innerHTML = fmt(d.price,2) + ' <span>' + mark + " " + fmt(Math.abs(d.change||0),2) + '</span>';
+
+      var a = Number(d.advances)||0, u = Number(d.unchanged)||0, dn = Number(d.declines)||0, tot = a+u+dn;
+      var declineRatio = tot > 0 ? dn/tot*100 : 50;
+      if (tot > 0) {
+        card.querySelector("[data-b-up]").style.width = (a/tot*100)+"%";
+        card.querySelector("[data-b-flat]").style.width = (u/tot*100)+"%";
+        card.querySelector("[data-b-down]").style.width = (dn/tot*100)+"%";
+        card.querySelector("[data-breadth]").textContent = "상승 "+a+" · 보합 "+u+" · 하락 "+dn;
+      }
+      card.querySelector("[data-stamp]").className = "stamp";
+      card.querySelector("[data-stamp]").textContent = "조회 " + new Date(d.asOf).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+
+      krState[key] = { ok:true };
+      if (scored) {
+        var score = clamp(declineRatio); // 하락 종목 비중만으로 산정 (52주 위치는 이 API에서 아직 검증 안 됨)
+        document.getElementById("kr-when").textContent = "코스피 · " + (d.marketOpen ? "장중" : "직전 조회값");
+        paintScore("kr", score,
+          "코스피 하락 종목 비중 " + declineRatio.toFixed(0) + "%. " +
+          (score>=65 ? "매도 우위 — 저점권에 가까울 수 있는 구간입니다."
+          : score>=40 ? "혼조 — 기존 포지션 유지."
+          : score>=20 ? "매수 우위 — 과열 신호에 유의."
+          : "뚜렷한 매수 우위 — 과열 구간일 수 있습니다."));
+      }
+      setKrMeta("", "1분 간격 갱신");
+    } catch (err) {
+      retractKr(key, err.message.slice(0,40));
+      krState[key] = { ok:false };
+      setKrMeta("bad", "일부 지수 확인 필요");
+      if (scored) document.getElementById("kr-why").textContent = "코스피를 불러오지 못했습니다: " + err.message;
+    }
+  }
+  function loadKR(){ loadKrOne("KOSPI","코스피", true); loadKrOne("KOSDAQ","코스닥", false); }
+
+  loadUS(); loadKR();
+  usTimer = setInterval(loadUS, 60000);
+  krTimer = setInterval(loadKR, 60000);
+})();
+</script>
+</body>
+</html>
